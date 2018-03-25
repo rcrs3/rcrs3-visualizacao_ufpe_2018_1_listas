@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Problema 2</title>
+        <meta charset="utf-8">
+        <script src="https://d3js.org/d3.v5.min.js"></script>
+        <script src="https://visualizacao-ufpe.github.io/data_vis_assignments/2018.1/datasetProblema2.js"></script>
+    </head>
+    <body>
+        <svg height="500" width="500">
+            <script type="text/javascript">
+                var colors = {
+                    "romance": '#fbb4ae',
+                    "policial": '#b3cde3',
+                    "biografia": '#ccebc5',
+                    "ficcao": '#decbe4',
+                    "conto": '#fed9a6',
+                    "cronica": '#ffffcc',
+                    "poesia": '#e5d8bd'
+                };
+
+                var h = 500, w = 500;
+
+                d3.select("svg")
+                .selectAll("rect")
+                .data(dataset)
+                .enter()
+                .append("rect")
+                .attr("x", function(d, i) {
+                    return i * (w/dataset.length);
+                })
+                .attr("y", function(d) {
+                    return h - 5*d["books"] - 20;
+                })
+                .attr("width", (w/dataset.length) - 5)
+                .attr("height", function(d) {
+                    return d["books"] * 5;
+                })
+                .attr("fill", function(d) {
+                    return colors[d["favoriteGenre"]];
+                });
+                
+                d3.select("svg")
+                .selectAll("text")
+                .data(dataset)
+                .enter()
+                .append("text")
+                .text(function(d) {
+                    return d["books"];
+                })
+                .attr("x", function(d, i) {
+                    return i * (w/dataset.length) + 11 + (d["books"] < 10? 5 : 0);
+                })
+                .attr("y", function(d) {
+                    return (h - 5*d["books"]);
+                });
+
+                d3.select("svg")
+                .selectAll("p")
+                .data(dataset)
+                .enter()
+                .append("text")
+                .text(function(d) {
+                    return d["year"];
+                })
+                .attr("x", function(d, i) {
+                    return i * (w/dataset.length) + 2;
+                })
+                .attr("y", function(d) {
+                    return 500;
+                })
+                .style("font-size", "85%");
+
+            </script>
+        </sgv>
+    </body>
+</html>
