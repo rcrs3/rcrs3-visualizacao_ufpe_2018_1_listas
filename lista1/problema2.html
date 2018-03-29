@@ -5,7 +5,6 @@
         <meta charset="utf-8">
         <script src="https://d3js.org/d3.v5.min.js"></script>
         <script src="https://visualizacao-ufpe.github.io/data_vis_assignments/2018.1/datasetProblema2.js"></script>
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     </head>
     <body>
         <svg height="500" width="500">
@@ -21,8 +20,9 @@
                 };
 
                 var h = 500, w = 500;
+                var select_svg = d3.select("svg");
 
-                d3.select("svg")
+                select_svg
                 .selectAll("rect")
                 .data(dataset)
                 .enter()
@@ -41,14 +41,15 @@
                     return colors[d["favoriteGenre"]];
                 })
                 .attr("id", function(d) {
-                    return d["year"];
+                    return "r" + d["year"];
                 });
                 
-                
-                d3.select("svg")
+                var group = select_svg
                 .selectAll("g")
                 .data(dataset)
-                .enter()
+                .enter() 
+
+                group
                 .append("text")
                 .text(function(d) {
                     return d["books"];
@@ -60,10 +61,7 @@
                     return (h - 5*d["books"]);
                 });
 
-                d3.select("svg")
-                .selectAll("g")
-                .data(dataset)
-                .enter()
+                group
                 .append("text")
                 .text(function(d) {
                     return d["year"];
@@ -77,11 +75,13 @@
                 .style("font-size", "85%");
                 
                 function highlightYear(value) {
-                    $(".stroked")
+                    select_svg
+                    .select(".stroked")
                     .attr("stroke-width", 0)
                     .attr("class", "");
 
-                    $("#" + value.toString())
+                    select_svg
+                    .select("#r" + value.toString())
                     .attr("stroke", "rgb(" + 0 + "," + 0 + "," + 0 + ")")
                     .attr("stroke-width", 3)
                     .attr("class", "stroked");
