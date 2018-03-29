@@ -5,6 +5,7 @@
         <meta charset="utf-8">
         <script src="https://d3js.org/d3.v5.min.js"></script>
         <script src="https://visualizacao-ufpe.github.io/data_vis_assignments/2018.1/datasetProblema2.js"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     </head>
     <body>
         <svg height="500" width="500">
@@ -38,10 +39,14 @@
                 })
                 .attr("fill", function(d) {
                     return colors[d["favoriteGenre"]];
+                })
+                .attr("id", function(d) {
+                    return d["year"];
                 });
                 
+                
                 d3.select("svg")
-                .selectAll("text")
+                .selectAll("g")
                 .data(dataset)
                 .enter()
                 .append("text")
@@ -56,7 +61,7 @@
                 });
 
                 d3.select("svg")
-                .selectAll("p")
+                .selectAll("g")
                 .data(dataset)
                 .enter()
                 .append("text")
@@ -70,8 +75,29 @@
                     return 500;
                 })
                 .style("font-size", "85%");
+                
+                function highlightYear(value) {
+                    $(".stroked")
+                    .attr("stroke-width", 0)
+                    .attr("class", "");
+
+                    $("#" + value.toString())
+                    .attr("stroke", "rgb(" + 0 + "," + 0 + "," + 0 + ")")
+                    .attr("stroke-width", 3)
+                    .attr("class", "stroked");
+                    
+                    console.log(value);
+                }
+
 
             </script>
         </sgv>
+        <div id="controls">
+            <label for="year">Year:</label>
+            2006
+            <input type="range" id="year" min="2006" max="2016" value="2011"
+               onchange="highlightYear(this.value)">
+            2016
+          </div>
     </body>
 </html>
