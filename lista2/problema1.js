@@ -40,14 +40,6 @@ svg.append("polyline")
         }
 
         ret += " " + xScale(0) + "," + yScalePink(temperature["RecordHigh"][0]);
-
-        /*var size = records.length;
-        for(var i = 0; i <= size; i++) {
-            var y = records[i%size];
-            if(i > 0) ret += " ";
-            
-            ret += xScale(i%12) + "," + yScalePink(y);
-        }*/
         
         return ret;
     });
@@ -84,7 +76,7 @@ var month = {
     10: "November",
     11: "December"
 }
-
+console.log(month);
 var xAxis = d3.axisBottom()
             .scale(xScale)
             .tickFormat(i => month[i]);
