@@ -11,6 +11,7 @@ var histogram = (function() {
 
 
     for(var i = 0; i < trips.length; i++) {
+
         if((trips[i]["carrier"] in numFlights)) {
             numFlights[trips[i]["carrier"]]++;
         } else {
@@ -31,8 +32,14 @@ var histogram = (function() {
 
     var yScaleHeight = d3.scaleLinear()
                     .domain([0, 
-                        d3.max(auxArray.map(d => d.value))])
-                .range([0, h - 40]);
+                    d3.max(auxArray.map(d => d.value))])
+                    .range([0, h - 40]);
+
+    var yScale = d3.scaleLinear()
+                    .domain([0, 
+                    d3.max(auxArray.map(d => d.value))])
+                    .range([h - 40,
+                    h - yScaleHeight(auxArray[0].value) - 40]);
 
     var barGroup = svg.append("g");
 
@@ -46,12 +53,7 @@ var histogram = (function() {
             .attr("height", d => yScaleHeight(d.value))
             .attr("fill", "Lavender");
 
-    var yScale = d3.scaleLinear()
-                .domain([0, 
-                d3.max(auxArray.map(d => d.value))])
-                .range([h - 40,
-                h - yScaleHeight(auxArray[0].value) - 40]);
-
+   
     var xAxis = d3.axisBottom()
                 .scale(xScale)
                 .ticks(2)
@@ -68,11 +70,23 @@ var histogram = (function() {
     svg.append("g")
         .attr("transform", "translate(" + 40 + ",0)")
         .call(yAxis);
-
+    
+    return {
+        bars: function() {
+            return barGroup;
+        },
+        scaleHeight: function(d) {
+            return yScaleHeight(d);
+        },
+        getHeight: function() {
+            return h;
+        }
+    };
 })();
 
-var scatterplot = (function() {
+var scatterplot = (function(histo) {
     var w = 700, h = 600;
+    var selectedPoints = [];
 
     var svg = d3.select("body")
                 .append("svg")
@@ -126,4 +140,59 @@ var scatterplot = (function() {
     svg.append("g")
         .attr("transform", "translate(" + 40 + ",0)")
         .call(yAxis);
-})();
+
+    var brush = d3.brush();
+    
+    var brushGroup = svg.append("g")
+                        .attr("class", "brush");
+
+    brush.on("brush", function(d, i) {
+        selectedPoints = [];
+        var selection = d3.event.selection;
+        var auxArray = [];
+        var numFlights = [];
+
+        circleGroup.selectAll("circle")
+                    .attr("fill", function(d, i) {
+                        var x = xScale(daysDiff(d['post'], d['start']));
+                        var y = yScale(d['price']);
+
+                        if(selection[0][0] <= x && x <= selection[1][0] &&
+                        selection[0][1] <= y && y <= selection[1][1]) {
+                            selectedPoints.push(i);
+                            return "orange";
+                        }
+                        return "black";
+                    });
+        
+        numFlights["Gol"] = 0;
+        numFlights["Tam"] = 0;
+        numFlights["Azul"] = 0;
+
+        for(var i = 0; i < trips.length; i++) {
+            var selected = false;
+            for(var j = 0; j < selectedPoints.length; j++) {
+                if(selectedPoints[j] == i) selected = true;
+            }
+
+            if(!selected) continue;
+            
+            numFlights[trips[i]["carrier"]]++;
+            
+        }
+    
+        for(var i in numFlights) {
+            auxArray.push({key: i, value: numFlights[i]});
+        }
+        console.log(auxArray);
+        histo.bars().selectAll("rect")
+                .data(auxArray)
+                .attr("y", d => (histo.getHeight() - histo.scaleHeight(d.value) - 40))
+                .attr("height", d => histo.scaleHeight(d.value));
+
+    });
+
+    
+    brushGroup.call(brush);
+
+})(histogram);
