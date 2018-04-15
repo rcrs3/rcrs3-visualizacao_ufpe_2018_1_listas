@@ -43,6 +43,12 @@ var histogram = (function() {
 
     var barGroup = svg.append("g");
 
+    var colors = {
+        "Gol": "Orange",
+        "Tam": "Red",
+        "Azul": "Blue"
+    };
+
     barGroup.selectAll("rect")
             .data(auxArray)
             .enter()
@@ -51,7 +57,8 @@ var histogram = (function() {
             .attr("y", (d, i) => (h - yScaleHeight(d.value) - 40))
             .attr("width", w/auxArray.length - 30)
             .attr("height", d => yScaleHeight(d.value))
-            .attr("fill", "Lavender");
+            .attr("fill", d => colors[d.key])
+            .attr("class", d => d.key);
 
    
     var xAxis = d3.axisBottom()
@@ -72,7 +79,7 @@ var histogram = (function() {
         .call(yAxis);
     
     return {
-        bars: function() {
+        getBars: function() {
             return barGroup;
         },
         scaleHeight: function(d) {
@@ -86,7 +93,8 @@ var histogram = (function() {
 
 var scatterplot = (function(histo) {
     var w = 700, h = 600;
-    var selectedPoints = [];
+    var auxArray = [];
+    var selection;
 
     var svg = d3.select("body")
                 .append("svg")
@@ -107,6 +115,12 @@ var scatterplot = (function(histo) {
         return days;
     };
     
+    var colors = {
+        "Gol": "Orange",
+        "Tam": "Red",
+        "Azul": "Blue"
+    };
+    
     var xScale = d3.scaleLinear()
                     .domain([0,
                     d3.max(trips.map(d => daysDiff(d["post"], d["start"])))])
@@ -125,7 +139,9 @@ var scatterplot = (function(histo) {
                 return xScale(daysDiff(post, start));
             })
             .attr("cy", d => yScale(d["price"]))
-            .attr("r", 5);
+            .attr("r", 5)
+            .attr("fill", d => colors[d["carrier"]])
+            .attr("class", d => d["carrier"]);
     
     var xAxis = d3.axisBottom()
                 .scale(xScale);
@@ -140,31 +156,11 @@ var scatterplot = (function(histo) {
     svg.append("g")
         .attr("transform", "translate(" + 40 + ",0)")
         .call(yAxis);
-
-    var brush = d3.brush();
     
-    var brushGroup = svg.append("g")
-                        .attr("class", "brush");
-
-    brush.on("brush", function(d, i) {
-        selectedPoints = [];
-        var selection = d3.event.selection;
-        var auxArray = [];
+    var updateBars = function(selectedPoints, isBrush) {
+        auxArray = [];
         var numFlights = [];
 
-        circleGroup.selectAll("circle")
-                    .attr("fill", function(d, i) {
-                        var x = xScale(daysDiff(d['post'], d['start']));
-                        var y = yScale(d['price']);
-
-                        if(selection[0][0] <= x && x <= selection[1][0] &&
-                        selection[0][1] <= y && y <= selection[1][1]) {
-                            selectedPoints.push(i);
-                            return "orange";
-                        }
-                        return "black";
-                    });
-        
         numFlights["Gol"] = 0;
         numFlights["Tam"] = 0;
         numFlights["Azul"] = 0;
@@ -175,7 +171,7 @@ var scatterplot = (function(histo) {
                 if(selectedPoints[j] == i) selected = true;
             }
 
-            if(!selected) continue;
+            if(!selected && isBrush) continue;
             
             numFlights[trips[i]["carrier"]]++;
             
@@ -184,15 +180,100 @@ var scatterplot = (function(histo) {
         for(var i in numFlights) {
             auxArray.push({key: i, value: numFlights[i]});
         }
-        console.log(auxArray);
-        histo.bars().selectAll("rect")
+
+        histo.getBars().selectAll("rect")
                 .data(auxArray)
                 .attr("y", d => (histo.getHeight() - histo.scaleHeight(d.value) - 40))
                 .attr("height", d => histo.scaleHeight(d.value));
+    }
 
-    });
-
+    var brush = d3.brush();
     
+    var brushGroup = svg.append("g")
+                        .attr("class", "brush");
+    
+
+    brush.on("brush", function(d, i) {
+        var selectedPoints = [];
+        selection = d3.event.selection;
+
+        var colorsMark = {
+            "Gol": "DarkOrange",
+            "Tam": "DarkRed",
+            "Azul": "DarkBlue"
+        };
+
+        circleGroup.selectAll("circle")
+                    .attr("fill", function(d, i) {
+                        var x = xScale(daysDiff(d['post'], d['start']));
+                        var y = yScale(d['price']);
+                       
+                        if(d3.select(this).attr("class") != (d["carrier"] + '0') &&
+                        selection[0][0] <= x && x <= selection[1][0] &&
+                        selection[0][1] <= y && y <= selection[1][1]) {
+                            selectedPoints.push(i);
+                            return colorsMark[d["carrier"]];
+                        }
+                        return colors[d["carrier"]];
+                    });
+        
+        updateBars(selectedPoints, true);
+
+    })
+    .on("start", function(d, i) {
+        updateBars([], false);
+        circleGroup.selectAll("circle")
+                    .attr("fill", d => colors[d["carrier"]])
+                    .style("opacity", 1)
+                    .attr("class", d => d["carrier"]);
+    });
     brushGroup.call(brush);
+
+    histo.getBars().selectAll("rect")
+            .on("click", function(d, i) {
+                //console.log(d);
+                var rect = d3.select(this);
+                
+                if(rect.attr("class") === d.key) {
+                    rect.style("opacity", 0.3)
+                        .attr("class", d.key + '0');
+                    console.log(d.key);
+                } else {
+                    rect.style("opacity", 1)
+                        .attr("class", d.key);
+                }
+
+                circleGroup.selectAll("circle")
+                            .style("opacity", function(arr, j) {
+                                var x = xScale(daysDiff(arr['post'], arr['start']));
+                                var y = yScale(arr['price']);
+                                var circleClass = d3.select(this).attr("class");
+                                var rectClass = rect.attr("class");
+                                var circleOpacity = d3.select(this).style("opacity");
+                                if(typeof selection === "undefined") {
+                                    
+                                    if(rectClass === circleClass + '0' || 
+                                    rectClass === circleClass.substring(0, circleClass.length-1)) {
+                                        return (circleOpacity === '0'? 1 : 0);
+                                    } else return 1;
+                                    
+                                }
+                                
+                                if(rectClass === circleClass + '0' || 
+                                rectClass === circleClass.substring(0, circleClass.length-1)) {
+                                    d3.select(this).attr("class", rectClass);
+                                    circleClass = d3.select(this).attr("class");
+                                } 
+                                if(selection[0][0] > x || x > selection[1][0] ||
+                                    selection[0][1] > y || y > selection[1][1]) {
+                                        d3.select(this).attr("class", arr["carrier"] + '0');
+                                        circleClass = d3.select(this).attr("class");
+                                    }
+
+                                var ret = (circleClass[circleClass.length-1] === '0');
+                                
+                                return (ret? 0 : 1);
+                            });
+            });
 
 })(histogram);
