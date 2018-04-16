@@ -202,8 +202,8 @@ var scatterplot = (function(histo) {
         };
         var x = xScale(daysDiff(d['post'], d['start']));
         var y = yScale(d['price']);
-                       
-        if(circleClass != (d["carrier"] + '0') &&
+                      
+        if((typeof selection !== "undefined") && circleClass != (d["carrier"] + '0') &&
             selection[0][0] <= x && x <= selection[1][0] &&
             selection[0][1] <= y && y <= selection[1][1]) {
                     selectedPoints.push(i);
@@ -221,15 +221,14 @@ var scatterplot = (function(histo) {
         
         updateBars(selectedPoints, true);
 
-    })
-    .on("start", function(d, i) {
+    }).on("start", function(d, i) {
         
         circleGroup.selectAll("circle")
-                    .attr("fill", (d, i) => changeColor(d, i, d3.select(this).attr("class")))
+                    .attr("fill", d => colors[d["carrier"]])
                     .style("opacity", 1)
                     .attr("class", d => d["carrier"]);
     
-        updateBars(selectedPoints, true);
+        updateBars([], false);
     });
     brushGroup.call(brush);
 
