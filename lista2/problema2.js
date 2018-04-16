@@ -192,52 +192,55 @@ var scatterplot = (function(histo) {
     var brushGroup = svg.append("g")
                         .attr("class", "brush");
     
-
-    brush.on("brush", function(d, i) {
-        var selectedPoints = [];
-        selection = d3.event.selection;
-
+    var selectedPoints = [];
+    var changeColor = function(d, i, circleClass) {
+        
         var colorsMark = {
             "Gol": "DarkOrange",
             "Tam": "DarkRed",
             "Azul": "DarkBlue"
         };
+        var x = xScale(daysDiff(d['post'], d['start']));
+        var y = yScale(d['price']);
+                       
+        if(circleClass != (d["carrier"] + '0') &&
+            selection[0][0] <= x && x <= selection[1][0] &&
+            selection[0][1] <= y && y <= selection[1][1]) {
+                    selectedPoints.push(i);
+                    return colorsMark[d["carrier"]];
+            }
+            return colors[d["carrier"]];
+    }
+
+    brush.on("brush", function(d, i) {
+        selectedPoints = [];
+        selection = d3.event.selection;
 
         circleGroup.selectAll("circle")
-                    .attr("fill", function(d, i) {
-                        var x = xScale(daysDiff(d['post'], d['start']));
-                        var y = yScale(d['price']);
-                       
-                        if(d3.select(this).attr("class") != (d["carrier"] + '0') &&
-                        selection[0][0] <= x && x <= selection[1][0] &&
-                        selection[0][1] <= y && y <= selection[1][1]) {
-                            selectedPoints.push(i);
-                            return colorsMark[d["carrier"]];
-                        }
-                        return colors[d["carrier"]];
-                    });
+                    .attr("fill", (d, i) => changeColor(d, i, d3.select(this).attr("class")));
         
         updateBars(selectedPoints, true);
 
     })
     .on("start", function(d, i) {
-        updateBars([], false);
+        
         circleGroup.selectAll("circle")
-                    .attr("fill", d => colors[d["carrier"]])
+                    .attr("fill", (d, i) => changeColor(d, i, d3.select(this).attr("class")))
                     .style("opacity", 1)
                     .attr("class", d => d["carrier"]);
+    
+        updateBars(selectedPoints, true);
     });
     brushGroup.call(brush);
 
     histo.getBars().selectAll("rect")
             .on("click", function(d, i) {
-                //console.log(d);
+
                 var rect = d3.select(this);
                 
                 if(rect.attr("class") === d.key) {
                     rect.style("opacity", 0.3)
                         .attr("class", d.key + '0');
-                    console.log(d.key);
                 } else {
                     rect.style("opacity", 1)
                         .attr("class", d.key);
