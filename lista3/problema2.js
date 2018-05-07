@@ -1,3 +1,8 @@
+const munLink = "https://visualizacao-ufpe.github.io/data_vis_assignments/2017.2/data/geojs-100-mun.json.txt";
+const occurrenceLink = "https://raw.githubusercontent.com/nosbielcs/opendata_aig_brazil/master/data/oco.csv";
+const esLink = "https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson";
+
+
 var map = L.map('map').setView([-15, -50], 4);
 var mapboxAccessToken = "pk.eyJ1IjoiY2FybmVybyIsImEiOiJjamd2aGI3NXowZ3d6MnFvOTdwcXNxeGM0In0.Gc8wEDsW856v8BTgRx_m3Q";
                         
@@ -76,86 +81,84 @@ var color = {
 var check_occurrence = function() {
     var value = d3.select('input[name="ocorrencia"]:checked').property("value");
     
-    d3.csv("data/oco.csv", function(error, data) {
-        if(layerEs != null) {
-            layerEs.remove();
-        }
-        if(layerMun != null) {
-            layerMun.remove();
-        }
-        if(legend != null) {
-            legend.remove();
+    if(layerEs != null) {
+        layerEs.remove();
+    }
+    if(layerMun != null) {
+        layerMun.remove();
+    }
+    if(legend != null) {
+        legend.remove();
+    }
+
+    for(var i = 0; i < circles.length; i++) {
+        circles[i].remove();
+    }
+    circles = [];
+
+    if(value === "ocorrencia") {
+        layerMun = L.geoJson(jsonMun, {style: styleOc});
+        layerMun.addTo(map);
+
+        for(var i = 0; i < csvOco.length; i++) {
+            var circle = L.circle([csvOco[i]["ocorrencia_latitude"],csvOco[i]["ocorrencia_longitude"]], {
+                color: color[csvOco[i]["ocorrencia_classificacao"]],
+                fillColor: '#f03',
+                fillOpacity: 1,
+                radius: 2
+            }).addTo(map);
+            circles.push(circle);
         }
 
-        for(var i = 0; i < circles.length; i++) {
-            circles[i].remove();
-        }
-        circles = [];
+    } else if(value === "ocorrencia_es") {
+        layerEs = L.geoJson(jsonEs, {style: styleEs});
+        layerEs.addTo(map);
 
-        if(value === "ocorrencia") {
-            layerMun = L.geoJson(jsonMun, {style: styleOc});
-            layerMun.addTo(map);
+        legend.onAdd = function (map) {
 
-            for(var i = 0; i < csvOco.length; i++) {
-                var circle = L.circle([csvOco[i]["ocorrencia_latitude"],csvOco[i]["ocorrencia_longitude"]], {
-                    color: color[csvOco[i]["ocorrencia_classificacao"]],
-                    fillColor: '#f03',
-                    fillOpacity: 1,
-                    radius: 5
-                }).addTo(map);
-                circles.push(circle);
+            var div = L.DomUtil.create('div', 'info legend'),
+                grades = [0, 10, 20, 50, 100, 200, 500, 1000],
+                labels = [];
+
+            // loop through our density intervals and generate a label with a colored square for each interval
+            for (var i = 0; i < grades.length; i++) {
+                div.innerHTML +=
+                    '<i style="background:' + getColorEs(grades[i] + 1) + '"></i> ' +
+                    grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + ' ocorrências<br>' : '+ ocorrências');
             }
 
-        } else if(value === "ocorrencia_es") {
-            layerEs = L.geoJson(jsonEs, {style: styleEs});
-            layerEs.addTo(map);
+            return div;
+        };
 
-            legend.onAdd = function (map) {
+        legend.addTo(map);
 
-                var div = L.DomUtil.create('div', 'info legend'),
-                    grades = [0, 10, 20, 50, 100, 200, 500, 1000],
-                    labels = [];
+    } else if(value === "ocorrencia_mun") {
+        layerMun = L.geoJson(jsonMun, {style: styleMun});
+        layerMun.addTo(map);
+        
+        legend.onAdd = function (map) {
 
-                // loop through our density intervals and generate a label with a colored square for each interval
-                for (var i = 0; i < grades.length; i++) {
-                    div.innerHTML +=
-                        '<i style="background:' + getColorEs(grades[i] + 1) + '"></i> ' +
-                        grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+');
-                }
+            var div = L.DomUtil.create('div', 'info legend'),
+                grades = [0, 5, 10, 20, 40],
+                labels = [];
 
-                return div;
-            };
+            // loop through our density intervals and generate a label with a colored square for each interval
+            for (var i = 0; i < grades.length; i++) {
+                div.innerHTML +=
+                    '<i style="background:' + getColorMun(grades[i] + 1) + '"></i> ' +
+                    grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + ' ocorrências<br>' : '+ ocorrências');
+            }
 
-            legend.addTo(map);
+            return div;
+        };
 
-        } else if(value === "ocorrencia_mun") {
-            layerMun = L.geoJson(jsonMun, {style: styleMun});
-            layerMun.addTo(map);
-            
-            legend.onAdd = function (map) {
-
-                var div = L.DomUtil.create('div', 'info legend'),
-                    grades = [0, 5, 10, 20, 40],
-                    labels = [];
-
-                // loop through our density intervals and generate a label with a colored square for each interval
-                for (var i = 0; i < grades.length; i++) {
-                    div.innerHTML +=
-                        '<i style="background:' + getColorMun(grades[i] + 1) + '"></i> ' +
-                        grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+');
-                }
-
-                return div;
-            };
-
-            legend.addTo(map);
-        }
-    });
+        legend.addTo(map);
+    }
 }
 
-d3.csv("data/oco.csv", function(error, data) {
+d3.csv(occurrenceLink, function(error, data) {
     csvOco = data;
-    d3.json("data/brazil-states.geojson", function(error, json) {
+    d3.json(esLink, function(error, json) {
         
 
         for(var i = 0; i < data.length; i++) {
@@ -177,7 +180,7 @@ d3.csv("data/oco.csv", function(error, data) {
         check_occurrence();
     });
     
-    d3.json("data/geojs-100-mun.json", function(error, json) {
+    d3.json(munLink, function(error, json) {
         //legend.remove();
         map.removeLayer(L.geoJson());
         

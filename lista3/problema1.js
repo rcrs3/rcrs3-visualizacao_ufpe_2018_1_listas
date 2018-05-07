@@ -1,20 +1,29 @@
-var h = 500, w = 500;
+const munLink = "https://visualizacao-ufpe.github.io/data_vis_assignments/2017.2/data/geojs-100-mun.json.txt";
+const occurrenceLink = "https://raw.githubusercontent.com/nosbielcs/opendata_aig_brazil/master/data/oco.csv";
+const esLink = "https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson";
+
+var h = 500, w = 700;
 
 var svg  = d3.select("body")
             .append("svg")
             .attr("height", h)
             .attr("width", w);
 
-console.log("wtf");
-
-
 var projection = d3.geoMercator()
-                    .translate([w/2 + 550, h/2 - 170])
+                    .translate([(w-200)/2 + 550, h/2 - 170])
                     .scale([600]);
 var path = d3.geoPath().projection(projection);
 
 var created_occ = false;
 var created_occ_es = false;
+
+function getColorMun(d) {
+    return d > 40 ? '#67000d' :
+           d > 20  ? '#a50f15' :
+           d > 10  ? '#cb181d' :
+           d > 5  ? '#ef3b2c' :
+                     '#fb6a4a';
+}
 
 function getColorEs(d) {
     return d > 1000 ? '#67000d' :
@@ -25,14 +34,6 @@ function getColorEs(d) {
            d > 20   ? '#fc9272' :
            d > 10   ? '#fcbba1' :
                       '#fee0d2';
-}
-
-function getColorMun(d) {
-    return d > 40 ? '#67000d' :
-           d > 20  ? '#a50f15' :
-           d > 10  ? '#cb181d' :
-           d > 5  ? '#ef3b2c' :
-                     '#fb6a4a';
 }
 
 var check_occurrence = function() {
@@ -81,7 +82,7 @@ var check_occurrence = function() {
 
 var num_occ_es = new Array();
 
-d3.json("data/geojs-100-mun.json", function(error, data) {
+d3.json(munLink, function(error, data) {
     var occ_group = svg.append("g").attr("id", "p_ocorrencia").style("opacity", 0);
 
     occ_group.selectAll("path")
@@ -94,7 +95,7 @@ d3.json("data/geojs-100-mun.json", function(error, data) {
                 .domain(["ACIDENTE","INCIDENTE"])
                 .range(["red", "blue", "green"]);
 
-    d3.csv("data/oco.csv", function(error, data) {
+    d3.csv(occurrenceLink, function(error, data) {
         svg.selectAll("circle")
             .data(data)
             .enter()
@@ -115,17 +116,9 @@ d3.json("data/geojs-100-mun.json", function(error, data) {
     });          
 });
 
-d3.csv("data/oco.csv", function(error, data) {
-    d3.json("data/brazil-states.geojson", function(error, json) {
+d3.csv(occurrenceLink, function(error, data) {
+    d3.json(esLink, function(error, json) {
         var occ_es_group = svg.append("g").attr("id", "p_ocorrencia_es").style("opacity", 0);
-        var color = d3.scaleQuantize()
-                    .range(["rgb(254,229,217)",
-                    "rgb(252,174,145)",
-                    "rgb(251,106,74)",
-                    "rgb(222,45,38)",
-                    "rgb(239,59,44)",
-                    "rgb(203,24,29)",
-                    "rgb(153,0,13)"]);
 
         for(var i = 0; i < data.length; i++) {
             var dataState = data[i]["ocorrencia_uf"];
@@ -142,10 +135,7 @@ d3.csv("data/oco.csv", function(error, data) {
                 }
             }
         }
-
-        color.domain([d3.min(json.features, function(d) { return d["properties"]["value"]; }),
-                    d3.max(json.features, function(d) { return d["properties"]["value"]; })]);
-                
+       
         occ_es_group.selectAll("path")
         .data(json["features"])
         .enter()
@@ -154,25 +144,44 @@ d3.csv("data/oco.csv", function(error, data) {
         .style("fill", function(d) {
             var value = d["properties"]["value"];
             return getColorEs(value);
-        });
+        }).attr("stroke", "black")
+        .attr("stroke-width", 0.5);
+
+        var color_data = [0, 10, 20, 50, 100, 200, 500, 1000];
+        for(var i = 0; i < color_data.length; i++) {
+            svg.append("rect")
+                .attr("width", 15)
+                .attr("height", 15)
+                .attr("x", 450)
+                .attr("y", 470 - 15*i)
+                .attr("id", "p_ocorrencia_es")
+                .style("opacity", 0)
+                .style("fill", getColorEs(color_data[i] + 1));
+        }
+
+        for(var i = 0; i < color_data.length; i++) {
+            var last = color_data.length - 1;
+            svg.append("text")
+                .attr("x", 470)
+                .attr("y", 482 - 15*i)
+                .attr("font-size", 15)
+                .attr("id", "p_ocorrencia_es")
+                .style("opacity", 0)
+                .text(color_data[i] + (i === last?"+" : "-" + color_data[i + 1]) + " ocorrências");
+        }
 
         check_occurrence()
     });
 
-    d3.json("data/geojs-100-mun.json", function(error, json) {
-        var occ_es_group = svg.append("g").attr("id", "p_ocorrencia_mun").style("opacity", 0);
-        var color = d3.scaleQuantize()
-                    .range(["rgb(254,229,217)",
-                    "rgb(252,187,161)",
-                    "rgb(252,146,114)",
-                    "rgb(251,106,74)",
-                    "rgb(165,15,21)"]);
+    d3.json(munLink, function(error, json) {
+        var occ_mun_group = svg.append("g").attr("id", "p_ocorrencia_mun").style("opacity", 0);
 
         for(var i = 0; i < data.length; i++) {
             var dataState = data[i]["ocorrencia_cidade"].toLowerCase();
-            
+            var found = false;
             for(var j = 0; j < json.features.length; j++) {
                 var jsonState = json.features[j]["properties"]["name"].toLowerCase();
+                
                 if(dataState === jsonState) {
                   //  console.log(dataState, jsonState);
                     if(json.features[j]["properties"]["value"] == null) {
@@ -180,22 +189,50 @@ d3.csv("data/oco.csv", function(error, data) {
                     } else {
                         json.features[j]["properties"]["value"]++;
                     }
+                    found = true;
                 }
             }
         }
-
-        color.domain([d3.min(json.features, function(d) { return d["properties"]["value"]; }),
-                    d3.max(json.features, function(d) { return d["properties"]["value"]; })]);
-                
-        occ_es_group.selectAll("path")
+        for(var i = 0; i < json.features.length; i++) {
+            if(json.features[i]["properties"]["value"] == null) {
+                json.features[i]["properties"]["value"] = 0;
+            }
+        }
+              
+        occ_mun_group.selectAll("path")
         .data(json["features"])
         .enter()
         .append("path")
         .attr("d", path)
         .style("fill", function(d) {
             var value = d["properties"]["value"];
-            return getColorNum(value);
-        });
+            return getColorMun(value);
+        })
+        .attr("stroke", "black")
+        .attr("stroke-width", 0.05);
+        
+        var color_data = [0, 5, 10, 20, 40];
+        for(var i = 0; i < color_data.length; i++) {
+            svg.append("rect")
+                .attr("width", 15)
+                .attr("height", 15)
+                .attr("x", 450)
+                .attr("y", 470 - 15*i)
+                .attr("id", "p_ocorrencia_mun")
+                .style("opacity", 0)
+                .style("fill", getColorMun(color_data[i] + 1));
+        }
+
+        for(var i = 0; i < color_data.length; i++) {
+            var last = color_data.length - 1;
+            svg.append("text")
+                .attr("x", 470)
+                .attr("y", 482 - 15*i)
+                .attr("font-size", 15)
+                .attr("id", "p_ocorrencia_mun")
+                .style("opacity", 0)
+                .text(color_data[i] + (i === last?"+" : "-" + color_data[i + 1]) + " ocorrências");
+        }
 
         check_occurrence()
     });
